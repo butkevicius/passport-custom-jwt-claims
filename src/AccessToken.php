@@ -8,7 +8,6 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
 use League\OAuth2\Server\CryptKey;
 use Laravel\Passport\Bridge\AccessToken as PassportAccessToken;
-use Illuminate\Support\Arr;
 
 class AccessToken extends PassportAccessToken
 {
@@ -16,7 +15,10 @@ class AccessToken extends PassportAccessToken
     public function convertToJWT(CryptKey $privateKey)
     {
         $claims = config('jwt-claims');
-        $user = $this->getUser();
+        $user = null;
+        if (null !== $this->getUserIdentifier()) {
+            $user = $this->getUser();
+        }
 
         $builder = (new Builder())
             ->setAudience($this->getClient()->getIdentifier())
@@ -28,8 +30,10 @@ class AccessToken extends PassportAccessToken
             ->set('scopes', $this->getScopes());
 
         // set user claims
-        foreach($claims['user_claims'] as $key => $claim) {
-            $builder = $builder->set($key, $user->$claim);
+        if ($user) {
+            foreach($claims['user_claims'] as $key => $claim) {
+                $builder = $builder->set($key, $user->$claim);
+            }
         }
 
         // set app claims
